@@ -27,6 +27,8 @@ jobs:
       set -o pipefail
       # TODO: promote VHD blob to a managed image
       ls -al $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/
+      cat $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json
     displayName: promote VHD blob to managed image
   - script: |
       # TODO: test the managed image
+    displayName: test the managed image
