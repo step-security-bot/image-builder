@@ -1,0 +1,32 @@
+# Required pipeline variables:
+# - BUILD_POOL - Azure DevOps build pool to use
+# - CONTAINER_IMAGE - Dev container image URL to use. Should have Azure CLI, Packer and Ansible.
+# - AZURE_TENANT_ID - tenant ID
+# - AZURE_CLIENT_ID - Service principal ID
+# - AZURE_CLIENT_SECRET - Service principal secret
+# - AZURE_SUBSCRIPTION_ID - Subscription ID used by the pipeline
+# - KUBERNETES_VERSION - version of Kubernetes to build the image with, e.g. `1.16.2`
+# - OS - target of build e.g. `Ubuntu/Windows`
+# - OS_VERSION - target of build e.g. `18.04/2004/2019`
+
+jobs:
+- job: test_vhd
+  container: $[ variables['CONTAINER_IMAGE'] ]
+  timeoutInMinutes: 120
+  strategy:
+    maxParallel: 0
+  pool:
+    name: $(BUILD_POOL)
+  steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: current
+      artifact: publishing-info
+      path: $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/
+  - script: |
+      set -o pipefail
+      # TODO: promote VHD blob to a managed image
+      ls -al $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/
+    displayName: promote VHD blob to managed image
+  - script: |
+      # TODO: test the managed image
