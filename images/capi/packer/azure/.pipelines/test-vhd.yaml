@@ -28,6 +28,9 @@ jobs:
       # TODO: promote VHD blob to a managed image
       ls -al $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/
       cat $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json
+      jq -r .vhd_url pub-info.json
+      VHD_RESOURCE_ID = $(jq -r .vhd_url pub-info.json)
+      echo "VHD_RESOURCE_ID: $VHD_RESOURCE_ID"
     displayName: promote VHD blob to managed image
   - script: |
       # TODO: test the managed image
