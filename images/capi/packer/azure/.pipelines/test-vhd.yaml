@@ -27,8 +27,14 @@ jobs:
       set -o pipefail
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
       # TODO: create a randomly named cluster in a random location for testing
+      export RG_NAME=foo
+      # TODO: how do we pass a variable like RG_NAME to the next test step?
       az image create -n testvmimage -g cluster-api-images --os-type Linux --source $VHD_RESOURCE_ID
     displayName: promote VHD blob to managed image
   - script: |
       # TODO: test the managed image
+      # clone the CAPZ repo? Is there a better way to do this?
+      # Munge test templates so they refer to our managed image
+      # Run subset of CAPZ e2e tests
+      # ./scripts/ci-e2e.sh
     displayName: test the managed image
