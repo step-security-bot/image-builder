@@ -26,7 +26,7 @@ jobs:
   - script: |
       set -o pipefail
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
-      # TODO: create a randomly named cluster in a random location for testing
+      # TODO: make sure that we're constrained to southcentralus (where "cluster-api-images" lives) or not
       az login -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --service-principal --tenant $AZURE_TENANT_ID
       az image create -n testvmimage -g cluster-api-images --os-type Linux --source $VHD_RESOURCE_ID
       IMAGE_ID=$(az image show -g cluster-api-images -n testvmimage --query '[id]' --output tsv)
@@ -38,6 +38,9 @@ jobs:
       # clone the CAPZ repo? Is there a better way to do this? Maybe use az capi.
       az extension add --source https://github.com/Azure/azure-capi-cli-extension/releases/download/v0.0.5/capi-0.0.5-py2.py3-none-any.whl
       # Munge test templates so they refer to our managed image
+      # TODO: find location of managed image and use it for az capi create
+      AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
+      az capi create -l $AZURE_LOCATION --template $(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/cluster-template.yaml
       # Run subset of CAPZ e2e tests
       # ./scripts/ci-e2e.sh
       # TODO: clean up the managed image
