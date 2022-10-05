@@ -37,10 +37,10 @@ jobs:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
   - script: |
       set -x
-      # TODO: test the managed image
+      # TODO: why is managed image id not available here?
       echo "Found managed image id: ${MANAGED_IMAGE_ID}"
       # clone the CAPZ repo? Is there a better way to do this? Maybe use az capi.
-      az extension add --source https://github.com/Azure/azure-capi-cli-extension/releases/download/v0.0.5/capi-0.0.5-py2.py3-none-any.whl
+      az extension add --yes --source https://github.com/Azure/azure-capi-cli-extension/releases/download/v0.0.5/capi-0.0.5-py2.py3-none-any.whl
       # Munge test templates so they refer to our managed image
       # TODO: find location of managed image and use it for az capi create
       AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
