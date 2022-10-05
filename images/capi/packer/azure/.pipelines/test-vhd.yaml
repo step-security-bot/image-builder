@@ -24,6 +24,7 @@ jobs:
       artifact: publishing-info
       path: $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/
   - script: |
+      set -x
       set -o pipefail
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
       # TODO: make sure that we're constrained to southcentralus (where "cluster-api-images" lives) or not
@@ -32,7 +33,10 @@ jobs:
       IMAGE_ID=$(az image show -g cluster-api-images -n testvmimage --query '[id]' --output tsv)
       ##vso[task.setvariable variable=MANAGED_IMAGE_ID;]$IMAGE_ID
     displayName: promote VHD blob to managed image
+    env:
+      AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
   - script: |
+      set -x
       # TODO: test the managed image
       echo "Found managed image id: ${MANAGED_IMAGE_ID}"
       # clone the CAPZ repo? Is there a better way to do this? Maybe use az capi.
@@ -45,3 +49,6 @@ jobs:
       # ./scripts/ci-e2e.sh
       # TODO: clean up the managed image
     displayName: test the managed image
+    env:
+      AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+
