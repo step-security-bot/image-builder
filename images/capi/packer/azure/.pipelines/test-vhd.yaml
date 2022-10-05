@@ -36,7 +36,7 @@ jobs:
 
       # Pass the managed image resource ID on to the next step
       IMAGE_ID=$(az image show -g cluster-api-images -n testvmimage --query '[id]' --output tsv)
-      ##vso[task.setvariable variable=MANAGED_IMAGE_ID;]$IMAGE_ID
+      echo "##vso[task.setvariable variable=MANAGED_IMAGE_ID;]$IMAGE_ID"
     displayName: promote VHD blob to managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
