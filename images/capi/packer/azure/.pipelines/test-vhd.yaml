@@ -41,10 +41,9 @@ jobs:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
   - script: |
       set -x
-
-      # TODO: why is managed image id not available here?
-      echo "Found managed image id: $MANAGED_IMAGE_ID"
-      echo "Found image id: $IMAGE_ID"
+      
+      # Export managed image id for cluster template
+      export MANAGED_IMAGE_ID=$(MANAGED_IMAGE_ID)
 
       # Set up the Azure CLI Cluster API extension
       az extension add --yes --source https://github.com/Azure/azure-capi-cli-extension/releases/download/v0.0.5/capi-0.0.5-py2.py3-none-any.whl
@@ -52,14 +51,15 @@ jobs:
       # Use the Azure location of the managed image for `az capi create`
       AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
       az capi create \
+        --name testvm \
         --kubernetes-version=$KUBERNETES_VERSION \
         --location=$AZURE_LOCATION \
         --control-plane-machine-count=1 \
-        --node-machine-count=1
+        --node-machine-count=1 \
         --template=$(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/test-templates/cluster-template.yaml
 
       # Clean up the managed image
-      az image delete -g cluster-api-images -n testvmimage --yes
+      az image delete -g cluster-api-images -n testvmimage
     displayName: test the managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
