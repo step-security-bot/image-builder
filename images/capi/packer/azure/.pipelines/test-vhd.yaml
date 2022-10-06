@@ -25,6 +25,7 @@ jobs:
       path: $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/
   - script: |
       set -x
+      set -e -o pipefail
 
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
 
@@ -41,6 +42,7 @@ jobs:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
   - script: |
       set -x
+      set -e -o pipefail
       
       # Export managed image id for cluster template
       export MANAGED_IMAGE_ID=$(MANAGED_IMAGE_ID)
@@ -51,6 +53,7 @@ jobs:
       # Use the Azure location of the managed image for `az capi create`
       AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
       az capi create \
+        --yes \
         --name testvm \
         --kubernetes-version=$KUBERNETES_VERSION \
         --location=$AZURE_LOCATION \
