@@ -52,6 +52,7 @@ jobs:
 
       # Use the Azure location of the managed image for `az capi create`
       AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
+      sudo az capi install
       az capi create \
         --yes \
         --name testvm \
