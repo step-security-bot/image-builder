@@ -25,7 +25,6 @@ jobs:
       path: $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/
   - script: |
       set -x
-      set -eou pipefail
 
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
 
@@ -42,7 +41,6 @@ jobs:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
   - script: |
       set -x
-      set -eou pipefail
 
       # TODO: why is managed image id not available here?
       echo "Found managed image id: $MANAGED_IMAGE_ID"
