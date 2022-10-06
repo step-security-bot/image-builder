@@ -59,7 +59,9 @@ jobs:
         --control-plane-machine-count=1 \
         --node-machine-count=1
         --template=$(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/test-templates/cluster-template.yaml
-      # TODO: clean up the managed image
+
+      # Clean up the managed image
+      az image delete -g cluster-api-images -n testvmimage --yes
     displayName: test the managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
