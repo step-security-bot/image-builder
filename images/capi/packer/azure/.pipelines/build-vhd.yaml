@@ -30,6 +30,7 @@ jobs:
         "vhd_url": "https://capi1664830245jzdo.blob.core.windows.net/system/Microsoft.Compute/Images/cluster-api-vhds/capi-1664830268-osDisk.6dce93c7-8c78-4ab2-8963-c9c0c3525260.vhd",
         "vhd_sas_url": "https://capi1664830245jzdo.blob.core.windows.net/system/Microsoft.Compute/Images/cluster-api-vhds/capi-1664830268-osDisk.6dce93c7-8c78-4ab2-8963-c9c0c3525260.vhd?st=2022-10-02T00%3A00Z&se=2023-10-03T00%3A00Z&sp=rl&sv=2018-11-09&sr=c&sig=4AuDfgZyVcBEzg4dWXVuZk9iU6ayfiKvAsh7Thfw8Io%3D"
       }
+      EOF
     displayName: Building VHD
     workingDirectory: '$(system.defaultWorkingDirectory)/images/capi'
     # env:
