@@ -53,6 +53,7 @@ jobs:
       # Use the Azure location of the managed image for `az capi create`
       AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
       mkdir ~/test-binaries
+      export PATH=$PATH:~/test-binaries
       az capi install -a -ip ~/test-binaries
       az capi create \
         --yes \
