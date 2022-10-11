@@ -48,11 +48,12 @@ jobs:
       export MANAGED_IMAGE_ID=$(MANAGED_IMAGE_ID)
 
       # Set up the Azure CLI Cluster API extension
-      az extension add --yes --source https://github.com/Azure/azure-capi-cli-extension/releases/download/v0.0.5/capi-0.0.5-py2.py3-none-any.whl
+      az extension add --yes --source https://github.com/Azure/azure-capi-cli-extension/releases/download/az-capi-nightly/capi-0.0.vnext-py2.py3-none-any.whl
 
       # Use the Azure location of the managed image for `az capi create`
       AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
-      sudo az capi install
+      mkdir ~/test-binaries
+      az capi install -a -ip ~/test-binaries
       az capi create \
         --yes \
         --name testvm \
