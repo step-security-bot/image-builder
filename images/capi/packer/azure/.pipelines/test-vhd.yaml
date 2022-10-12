@@ -44,7 +44,7 @@ jobs:
       az image create -n testvmimage -g $RESOURCE_GROUP --os-type Linux --source $VHD_RESOURCE_ID
 
       # Pass the managed image resource ID on to the next step
-      IMAGE_ID=$(az image show -g cluster-api-images -n testvmimage --query '[id]' --output tsv)
+      IMAGE_ID=$(az image show -g "${RESOURCE_GROUP}" -n testvmimage --query '[id]' --output tsv)
       echo "##vso[task.setvariable variable=MANAGED_IMAGE_ID;]$IMAGE_ID"
       echo "##vso[task.setvariable variable=RESOURCE_GROUP;]$RESOURCE_GROUP"
     displayName: promote VHD blob to managed image
@@ -62,7 +62,7 @@ jobs:
       az extension add --yes --source https://github.com/Azure/azure-capi-cli-extension/releases/download/az-capi-nightly/capi-0.0.vnext-py2.py3-none-any.whl
 
       # Use the Azure location of the managed image for `az capi create`
-      AZURE_LOCATION=$(az image show -g cluster-api-images -n testvmimage --query '[location]' --output tsv)
+      AZURE_LOCATION=$(az image show -g "${RESOURCE_GROUP}" -n testvmimage --query '[location]' --output tsv)
       mkdir ~/test-binaries
       export PATH=$PATH:~/test-binaries
       az capi install -a -ip ~/test-binaries
