@@ -34,7 +34,7 @@ jobs:
       AZURE_LOCATION="${REGIONS[${RANDOM} % ${#REGIONS[@]}]}"
 
       # Create the resource group
-      az group create --name "${RESOURCE_GROUP}" --location $(AZURE_LOCATION)
+      az group create --name "${RESOURCE_GROUP}" --location "${AZURE_LOCATION}"
 
       # Create a managed image from the VHD blob
       # TODO: Verify that provisioning is constrained to southcentralus (where "cluster-api-images" lives) or not
