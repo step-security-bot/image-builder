@@ -35,7 +35,7 @@ jobs:
       az login -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --service-principal --tenant $AZURE_TENANT_ID
 
       # Find the storage account name from the VHD resource ID url and extract the location from it
-      STORAGE_ACCOUNT_NAME=$(echo $VHD_RESOURCE_ID | grep -Eo 'https:\/\/(.*?)\.' | cut -d/ -f3 | rev | cut -c 2- | rev)
+      STORAGE_ACCOUNT_NAME=$(echo $VHD_RESOURCE_ID | grep -Eo 'https:\/\/(.*?)\.' | cut -d/ -f3 | cut -d. -f1)
       AZURE_LOCATION=$(az storage account show --name "${STORAGE_ACCOUNT_NAME}" --query '[location]' -o tsv)
 
       # Create the resource group
