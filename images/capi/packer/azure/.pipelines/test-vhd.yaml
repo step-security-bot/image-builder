@@ -33,12 +33,14 @@ jobs:
       REGIONS=("eastus" "eastus2" "southcentralus" "westus2" "westeurope")
       AZURE_LOCATION="${REGIONS[${RANDOM} % ${#REGIONS[@]}]}"
 
+      # Azure CLI login
+      az login -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --service-principal --tenant $AZURE_TENANT_ID
+
       # Create the resource group
       az group create --name "${RESOURCE_GROUP}" --location "${AZURE_LOCATION}"
 
       # Create a managed image from the VHD blob
       # TODO: Verify that provisioning is constrained to southcentralus (where "cluster-api-images" lives) or not
-      az login -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --service-principal --tenant $AZURE_TENANT_ID
       az image create -n testvmimage -g $RESOURCE_GROUP --os-type Linux --source $VHD_RESOURCE_ID
 
       # Pass the managed image resource ID on to the next step
