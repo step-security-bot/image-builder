@@ -28,15 +28,18 @@ jobs:
       set -e -o pipefail
 
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
+      RANDOM=$(bash -c 'echo $RANDOM')
+      RESOURCE_GROUP="capi-testvmimage-${RANDOM}"
 
       # Create a managed image from the VHD blob
       # TODO: Verify that provisioning is constrained to southcentralus (where "cluster-api-images" lives) or not
       az login -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --service-principal --tenant $AZURE_TENANT_ID
-      az image create -n testvmimage -g cluster-api-images --os-type Linux --source $VHD_RESOURCE_ID
+      az image create -n testvmimage -g $RESOURCE_GROUP --os-type Linux --source $VHD_RESOURCE_ID
 
       # Pass the managed image resource ID on to the next step
       IMAGE_ID=$(az image show -g cluster-api-images -n testvmimage --query '[id]' --output tsv)
       echo "##vso[task.setvariable variable=MANAGED_IMAGE_ID;]$IMAGE_ID"
+      echo "##vso[task.setvariable variable=RESOURCE_GROUP;]$RESOURCE_GROUP"
     displayName: promote VHD blob to managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
@@ -46,6 +49,7 @@ jobs:
       
       # Export managed image id for cluster template
       export MANAGED_IMAGE_ID=$(MANAGED_IMAGE_ID)
+      export RESOURCE_GROUP=$(RESOURCE_GROUP)
 
       # Set up the Azure CLI Cluster API extension
       az extension add --yes --source https://github.com/Azure/azure-capi-cli-extension/releases/download/az-capi-nightly/capi-0.0.vnext-py2.py3-none-any.whl
@@ -60,12 +64,14 @@ jobs:
         --name testvm \
         --kubernetes-version=$KUBERNETES_VERSION \
         --location=$AZURE_LOCATION \
+        --resource-group=$RESOURCE_GROUP \
+        --management-cluster-resource-group-name=$RESOURCE_GROUP \
         --control-plane-machine-count=1 \
         --node-machine-count=1 \
         --template=$(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/test-templates/cluster-template.yaml
 
-      # Clean up the managed image
-      az image delete -g cluster-api-images -n testvmimage
+      # Clean up the test resource group
+      az group delete -n $RESOURCE_GROUP --yes
     displayName: test the managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
