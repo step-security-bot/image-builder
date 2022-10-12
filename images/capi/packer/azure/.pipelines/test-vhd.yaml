@@ -30,7 +30,8 @@ jobs:
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
       RANDOM=$(bash -c 'echo $RANDOM')
       RESOURCE_GROUP="capi-testvmimage-${RANDOM}"
-      AZURE_LOCATION="${AZURE_LOCATION:-$(get_random_region)}"
+      REGIONS=("eastus" "eastus2" "southcentralus" "westus2" "westeurope")
+      AZURE_LOCATION="${REGIONS[${RANDOM} % ${#REGIONS[@]}]}"
 
       # Create the resource group
       az group create --name "${RESOURCE_GROUP}" --location $(AZURE_LOCATION)
