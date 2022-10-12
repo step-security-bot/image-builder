@@ -30,23 +30,25 @@ jobs:
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
       RANDOM=$(bash -c 'echo $RANDOM')
       RESOURCE_GROUP="capi-testvmimage-${RANDOM}"
-      REGIONS=("eastus" "eastus2" "southcentralus" "westus2" "westeurope")
-      AZURE_LOCATION="${REGIONS[${RANDOM} % ${#REGIONS[@]}]}"
 
       # Azure CLI login
       az login -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --service-principal --tenant $AZURE_TENANT_ID
+
+      # Find the storage account name from the VHD resource ID url and extract the location from it
+      STORAGE_ACCOUNT_NAME=$(echo $VHD_RESOURCE_ID | grep -Eo 'https:\/\/(.*?)\.' | cut -d/ -f3 | rev | cut -c 2- | rev)
+      AZURE_LOCATION=$(az storage account show --name "${STORAGE_ACCOUNT_NAME}" --query '[location]' -o tsv)
 
       # Create the resource group
       az group create --name "${RESOURCE_GROUP}" --location "${AZURE_LOCATION}"
 
       # Create a managed image from the VHD blob
-      # TODO: Verify that provisioning is constrained to southcentralus (where "cluster-api-images" lives) or not
-      az image create -n testvmimage -g $RESOURCE_GROUP --os-type Linux --source $VHD_RESOURCE_ID
+      az image create -n testvmimage -g "${RESOURCE_GROUP}" --os-type Linux --source "${VHD_RESOURCE_ID}"
 
       # Pass the managed image resource ID on to the next step
       IMAGE_ID=$(az image show -g "${RESOURCE_GROUP}" -n testvmimage --query '[id]' --output tsv)
       echo "##vso[task.setvariable variable=MANAGED_IMAGE_ID;]$IMAGE_ID"
       echo "##vso[task.setvariable variable=RESOURCE_GROUP;]$RESOURCE_GROUP"
+      echo "##vso[task.setvariable variable=AZURE_LOCATION;]$AZURE_LOCATION"
     displayName: promote VHD blob to managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
@@ -57,15 +59,17 @@ jobs:
       # Export managed image id for cluster template
       export MANAGED_IMAGE_ID=$(MANAGED_IMAGE_ID)
       export RESOURCE_GROUP=$(RESOURCE_GROUP)
+      export AZURE_LOCATION=$(AZURE_LOCATION)
 
       # Set up the Azure CLI Cluster API extension
       az extension add --yes --source https://github.com/Azure/azure-capi-cli-extension/releases/download/az-capi-nightly/capi-0.0.vnext-py2.py3-none-any.whl
 
-      # Use the Azure location of the managed image for `az capi create`
-      AZURE_LOCATION=$(az image show -g "${RESOURCE_GROUP}" -n testvmimage --query '[location]' --output tsv)
+      # Install required binaries
       mkdir ~/test-binaries
       export PATH=$PATH:~/test-binaries
       az capi install -a -ip ~/test-binaries
+
+      # Create a cluster
       az capi create \
         --yes \
         --name testvm \
@@ -78,7 +82,7 @@ jobs:
         --template=$(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/test-templates/cluster-template.yaml
 
       # Clean up the test resource group
-      az group delete -n $RESOURCE_GROUP --yes
+      az group delete -n "${RESOURCE_GROUP}" --yes
     displayName: test the managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
