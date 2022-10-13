@@ -29,14 +29,14 @@ jobs:
 
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
       VHD_INFO=$(jq . $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
+      STORAGE_ACCOUNT_NAME=$(jq -r .storage_account_name $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
       RANDOM=$(bash -c 'echo $RANDOM')
       RESOURCE_GROUP="capi-testvmimage-${RANDOM}"
 
       # Azure CLI login
       az login -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --service-principal --tenant $AZURE_TENANT_ID
 
-      # Find the storage account name from the VHD resource ID url and extract the location from it
-      STORAGE_ACCOUNT_NAME=$(echo $VHD_RESOURCE_ID | grep -Eo 'https:\/\/(.*?)\.' | cut -d/ -f3 | cut -d. -f1)
+      # Find the VHD blob location from its storage account
       AZURE_LOCATION=$(az storage account show --name "${STORAGE_ACCOUNT_NAME}" --query '[location]' -o tsv)
 
       # Create the resource group
@@ -56,7 +56,7 @@ jobs:
   - script: |
       set -x
       set -e -o pipefail
-      
+
       # Export managed image id for cluster template
       export MANAGED_IMAGE_ID=$(MANAGED_IMAGE_ID)
       export RESOURCE_GROUP=$(RESOURCE_GROUP)
