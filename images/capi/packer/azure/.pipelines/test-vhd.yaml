@@ -28,6 +28,7 @@ jobs:
       set -e -o pipefail
 
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
+      VHD_INFO=$(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json
       RANDOM=$(bash -c 'echo $RANDOM')
       RESOURCE_GROUP="capi-testvmimage-${RANDOM}"
 
