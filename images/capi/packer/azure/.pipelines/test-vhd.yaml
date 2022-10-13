@@ -28,7 +28,7 @@ jobs:
       set -e -o pipefail
 
       VHD_RESOURCE_ID=$(jq -r .vhd_url $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
-      VHD_INFO=$(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json
+      VHD_INFO=$(jq $(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd/vhd-publishing-info.json)
       RANDOM=$(bash -c 'echo $RANDOM')
       RESOURCE_GROUP="capi-testvmimage-${RANDOM}"
 
@@ -83,7 +83,7 @@ jobs:
         --template=$(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/test-templates/cluster-template.yaml
 
       # Clean up the test resource group
-      az group delete -n "${RESOURCE_GROUP}" --yes
+      az group delete -n "${RESOURCE_GROUP}" --yes --no-wait
     displayName: test the managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
