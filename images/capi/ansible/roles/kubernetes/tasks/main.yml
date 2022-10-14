@@ -53,8 +53,8 @@
 - name: Enable kubelet service
   systemd:
     name: kubelet
-    daemon_reload: yes
-    enabled: True
+    daemon_reload: no
+    enabled: False
     state: stopped
 
 - name: Create the Kubernetes version file
