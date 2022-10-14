@@ -39,7 +39,7 @@ jobs:
       AZURE_LOCATION=$(az storage account show --name "${STORAGE_ACCOUNT_NAME}" --query '[location]' -o tsv)
 
       # Create the resource group
-      az group create --name "${RESOURCE_GROUP}" --location "${AZURE_LOCATION}"
+      az group create --name "${RESOURCE_GROUP}" --location "${AZURE_LOCATION}" --tags "DO-NOT-DELETE=CAPZ Reference Image"
 
       # Create a managed image from the VHD blob
       az image create -n testvmimage -g "${RESOURCE_GROUP}" --os-type Linux --source "${VHD_RESOURCE_ID}"
@@ -88,10 +88,14 @@ jobs:
         --control-plane-machine-count=1 \
         --node-machine-count=1 \
         --template=$TEST_TEMPLATE
-
-      # Clean up the test resource group
-      az group delete -n "${RESOURCE_GROUP}" --yes --no-wait
     displayName: test the managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-
+  - script: |
+      set -x
+      set -e -o pipefail
+      
+      # Clean up the test resource group
+      az group delete -n "${RESOURCE_GROUP}" --yes --no-wait
+    displayName: clean up test resource group
+    condition: always()
