@@ -22,7 +22,7 @@ jobs:
   - script: |
       set -o pipefail
       make deps-azure
-      os=$(echo "$OS" | tr '[:upper:]' '[:lower:]') 
+      os=$(echo "$OS" | tr '[:upper:]' '[:lower:]')
       version=$(echo "$OS_VERSION" | tr '[:upper:]' '[:lower:]' | tr -d .)
       make build-azure-vhd-$os-$version | tee packer/azure/packer.out
     displayName: Building VHD
@@ -39,5 +39,5 @@ jobs:
   - template: delete-storage-account.yaml
   - script: |
       chown -R $USER:$USER .
-    displayName: cleanup - chown all files in work directory 
+    displayName: cleanup - chown all files in work directory
     condition: always()

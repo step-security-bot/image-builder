@@ -1,9 +1,13 @@
 steps:
 - script: |
       VHD_URL="$(cat packer/azure/vhd-url.out)"
+      VHD_SAS_URL="$(cat packer/azure/vhd-sas-url.out)"
+      STORAGE_ACCOUNT_NAME="$(cat packer/azure/storage-account-name.out)"
       cat <<EOF > packer/azure/vhd-publishing-info.json
       {
-          "vhd_url" : "$VHD_URL"
+          "vhd_url": "$VHD_URL",
+          "vhd_sas_url": "$VHD_SAS_URL",
+          "storage_account_name": "$STORAGE_ACCOUNT_NAME"
       }
       EOF
   displayName: Generating publishing info for VHD
