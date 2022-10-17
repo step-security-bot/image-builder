@@ -70,7 +70,9 @@ jobs:
       export PATH=$PATH:~/test-binaries
       az capi install -a -ip ~/test-binaries
 
+      params=()
       if [ "$OS" == "Windows" ]; then
+        params+=(--windows)
         TEST_TEMPLATE=$(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/test-templates/cluster-template-windows.yaml
       else
         TEST_TEMPLATE=$(system.defaultWorkingDirectory)/images/capi/packer/azure/scripts/test-templates/cluster-template.yaml
@@ -87,7 +89,8 @@ jobs:
         --management-cluster-resource-group-name=$RESOURCE_GROUP \
         --control-plane-machine-count=1 \
         --node-machine-count=1 \
-        --template=$TEST_TEMPLATE
+        --template=$TEST_TEMPLATE \
+        "${params[@]}"
     displayName: test the managed image
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
