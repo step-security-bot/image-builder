@@ -24,6 +24,14 @@ jobs:
       make deps-azure
       os=$(echo "$OS" | tr '[:upper:]' '[:lower:]')
       version=$(echo "$OS_VERSION" | tr '[:upper:]' '[:lower:]' | tr -d .)
+      get_random_region() {
+          local REGIONS=("eastus" "eastus2" "southcentralus" "westus2" "westeurope")
+          echo "${REGIONS[${RANDOM} % ${#REGIONS[@]}]}"
+      }
+      export AZURE_LOCATION=$(get_random_region)
+      RANDOM=$(bash -c 'echo $RANDOM')
+      export RESOURCE_GROUP_NAME="cluster-api-images-${RANDOM}"
+      export TAGS="DO-NOT-DELETE=CAPZ Reference Image"
       make build-azure-vhd-$os-$version | tee packer/azure/packer.out
     displayName: Building VHD
     workingDirectory: '$(system.defaultWorkingDirectory)/images/capi'
