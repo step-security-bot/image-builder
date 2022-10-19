@@ -28,23 +28,30 @@ jobs:
           local REGIONS=("eastus" "eastus2" "southcentralus" "westus2" "westeurope")
           echo "${REGIONS[${RANDOM} % ${#REGIONS[@]}]}"
       }
-      export AZURE_LOCATION=$(get_random_region)
-      RANDOM=$(bash -c 'echo $RANDOM')
-      export RESOURCE_GROUP_NAME="cluster-api-images-${RANDOM}"
-      export TAGS="DO-NOT-DELETE=CAPZ Reference Image"
-      make build-azure-vhd-$os-$version | tee packer/azure/packer.out
+      # export AZURE_LOCATION=$(get_random_region)
+      # RANDOM=$(bash -c 'echo $RANDOM')
+      # export RESOURCE_GROUP_NAME="cluster-api-images-${RANDOM}"
+      # export TAGS="DO-NOT-DELETE=CAPZ Reference Image"
+      # make build-azure-vhd-$os-$version | tee packer/azure/packer.out
+      cat <<EOF > packer/azure/vhd-publishing-info.json
+      {
+          "vhd_base_url": ""https://capi1666204596fswa.blob.core.windows.net/system/Microsoft.Compute/Images/cluster-api-vhds/capi-1666204619-osDisk.768db644-514a-412c-a26a-ec1d18ff35b1.vhd",
+          "vhd_url": "https://capi1666204596fswa.blob.core.windows.net/system/Microsoft.Compute/Images/cluster-api-vhds/capi-1666204619-osDisk.768db644-514a-412c-a26a-ec1d18ff35b1.vhd?st=2022-10-18T00%3A00Z&se=2023-10-19T00%3A00Z&sp=rl&sv=2018-11-09&sr=c&sig=uIgjEE1u0MqaHlA1rvnNb7ULqR11xuQ/MJ7tU/w7W30%3D",
+          "storage_account_name": "capi1666204596fswa"
+      }
+      EOF
     displayName: Building VHD
     workingDirectory: '$(system.defaultWorkingDirectory)/images/capi'
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-  - template: generate-sas.yaml
-  - template: vhd-publishing-info.yaml
+  # - template: generate-sas.yaml
+  # - template: vhd-publishing-info.yaml
   - task: PublishPipelineArtifact@1
     inputs:
       artifact: 'publishing-info'
       path: '$(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd-publishing-info.json'
     condition: eq(variables.CLEANUP, 'False')
-  - template: delete-storage-account.yaml
+  # - template: delete-storage-account.yaml
   - script: |
       chown -R $USER:$USER .
     displayName: cleanup - chown all files in work directory

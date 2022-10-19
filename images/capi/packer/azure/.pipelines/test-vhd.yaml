@@ -97,8 +97,8 @@ jobs:
   - script: |
       set -x
       set -e -o pipefail
-      
+
       # Clean up the test resource group
-      az group delete -n "${RESOURCE_GROUP}" --yes --no-wait
+      #az group delete -n "${RESOURCE_GROUP}" --yes --no-wait
     displayName: clean up test resource group
     condition: always()
