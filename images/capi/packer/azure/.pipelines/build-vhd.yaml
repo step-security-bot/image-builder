@@ -35,7 +35,7 @@ jobs:
       # make build-azure-vhd-$os-$version | tee packer/azure/packer.out
       cat <<EOF > packer/azure/vhd-publishing-info.json
       {
-          "vhd_base_url": ""https://capi1666204596fswa.blob.core.windows.net/system/Microsoft.Compute/Images/cluster-api-vhds/capi-1666204619-osDisk.768db644-514a-412c-a26a-ec1d18ff35b1.vhd",
+          "vhd_base_url": "https://capi1666204596fswa.blob.core.windows.net/system/Microsoft.Compute/Images/cluster-api-vhds/capi-1666204619-osDisk.768db644-514a-412c-a26a-ec1d18ff35b1.vhd",
           "vhd_url": "https://capi1666204596fswa.blob.core.windows.net/system/Microsoft.Compute/Images/cluster-api-vhds/capi-1666204619-osDisk.768db644-514a-412c-a26a-ec1d18ff35b1.vhd?st=2022-10-18T00%3A00Z&se=2023-10-19T00%3A00Z&sp=rl&sv=2018-11-09&sr=c&sig=uIgjEE1u0MqaHlA1rvnNb7ULqR11xuQ/MJ7tU/w7W30%3D",
           "storage_account_name": "capi1666204596fswa"
       }
