@@ -42,7 +42,7 @@ jobs:
       az group create --name "${RESOURCE_GROUP}" --location "${AZURE_LOCATION}" --tags "DO-NOT-DELETE=CAPZ Reference Image"
 
       # Create a managed image from the VHD blob
-      az image create -n testvmimage -g "${RESOURCE_GROUP}" --os-type Linux --source "${VHD_RESOURCE_ID}"
+      az image create -n testvmimage -g "${RESOURCE_GROUP}" --os-type "$OS" --source "${VHD_RESOURCE_ID}"
 
       # Pass the managed image resource ID on to the next step
       IMAGE_ID=$(az image show -g "${RESOURCE_GROUP}" -n testvmimage --query '[id]' --output tsv)
