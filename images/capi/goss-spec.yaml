@@ -1,0 +1,157 @@
+package:
+  audit:
+    installed: true
+  azure-cli:
+    installed: true
+  ca-certificates:
+    installed: true
+  chrony:
+    installed: true
+  cloud-init:
+    installed: true
+  cloud-utils-growpart:
+    installed: true
+  conntrack-tools:
+    installed: true
+  curl:
+    installed: true
+  jq:
+    installed: true
+  kubeadm:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.28.3-1.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.28.3\E$
+  kubectl:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.28.3-1.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.28.3\E$
+  kubelet:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.28.3-1.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.28.3\E$
+  kubernetes-cni:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.2.0-2.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.2.0\E$
+  nftables:
+    installed: true
+  ntp:
+    installed: false
+  open-vm-tools:
+    installed: true
+  python3-netifaces:
+    installed: true
+  python3-pip:
+    installed: true
+  python3-requests:
+    installed: true
+  socat:
+    installed: true
+  sysstat:
+    installed: true
+  yum-utils:
+    installed: true
+service:
+  auditd:
+    enabled: true
+    running: true
+  chronyd:
+    enabled: true
+    running: true
+  conntrackd:
+    enabled: false
+    running: false
+  containerd:
+    enabled: true
+    running: true
+  dockerd:
+    enabled: false
+    running: false
+  kubelet:
+    enabled: true
+    running: false
+command:
+  containerd --version | awk -F' ' '{print substr($3,2); }':
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  containerd-shim-lunatic-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.lunatic.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  containerd-shim-slight-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.slight.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  containerd-shim-spin-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.spin.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  containerd-shim-wws-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.wws.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  crictl images | grep -v 'IMAGE ID' | awk -F'[ /]' '{print $2}' | sed 's/-amd64//g' | sort:
+    exit-status: 0
+    stdout:
+    - coredns
+    - etcd
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-proxy
+    - kube-scheduler
+    - pause
+    stderr: []
+    timeout: 0
+  crictl ps:
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  grep -E 'io\.containerd\.(lunatic|slight|spin|wws)\.v1' /etc/containerd/config.toml:
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+kernel-param:
+  kernel.panic:
+    value: "10"
+  kernel.panic_on_oops:
+    value: "1"
+  net.bridge.bridge-nf-call-ip6tables:
+    value: "1"
+  net.bridge.bridge-nf-call-iptables:
+    value: "1"
+  net.ipv4.ip_forward:
+    value: "1"
+  net.ipv6.conf.all.disable_ipv6:
+    value: "0"
+  net.ipv6.conf.all.forwarding:
+    value: "1"
+  vm.overcommit_memory:
+    value: "1"
