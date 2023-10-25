@@ -51,15 +51,12 @@ FLATCAR_CAPI_IMAGE_NAME=${FLATCAR_CAPI_IMAGE_NAME:-${FLATCAR_IMAGE_NAME}-capi-${
 FLATCAR_CAPI_IMAGE_OFFER=${FLATCAR_CAPI_IMAGE_OFFER:-${FLATCAR_CHANNEL}-capi}
 FLATCAR_CAPI_IMAGE_SKU=${FLATCAR_CAPI_IMAGE_SKU:-${FLATCAR_CAPI_IMAGE_NAME}}
 FLATCAR_CAPI_COMMUNITY_GALLERY_PUBLIC_NAME_PREFIX=${FLATCAR_CAPI_COMMUNITY_GALLERY_PUBLIC_NAME_PREFIX:-flatcar4capi}
-IMAGE_BUILDER_GIT_REMOTE="${IMAGE_BUILDER_GIT_REMOTE:-https://github.com/kubernetes-sigs/image-builder.git}"
-IMAGE_BUILDER_GIT_REPOSITORY_PATH="${IMAGE_BUILDER_GIT_REPOSITORY_PATH:-/tmp/image-builder}"
-IMAGE_BUILDER_GIT_VERSION="${IMAGE_BUILDER_GIT_VERSION:-master}"
 
-function publish-flatcar-capi-image() {
+function publish-capz-image() {
   require-amd64-arch
 
   # First, make sure staging image is available before publishing.
-  build-capi-staging-image
+  build-staging-image
 
   login
 
@@ -87,7 +84,7 @@ function publish-flatcar-capi-image() {
   EXCLUDE_FROM_LATEST=true copy-sig-image-version
 }
 
-function build-capi-staging-image() {
+function build-staging-image() {
   require-amd64-arch
 
   # First, make sure that base Flatcar image is available.
@@ -111,14 +108,6 @@ function build-capi-staging-image() {
   IMAGE_OFFER="${FLATCAR_CAPI_IMAGE_OFFER}"
   IMAGE_PUBLISHER="${IMAGE_PUBLISHER_NAME}"
   ensure-image-definition
-
-  if [[ ! -d "${IMAGE_BUILDER_GIT_REPOSITORY_PATH}" ]]; then
-    git clone "${IMAGE_BUILDER_GIT_REMOTE}" "${IMAGE_BUILDER_GIT_REPOSITORY_PATH}"
-  fi
-
-  pushd "${IMAGE_BUILDER_GIT_REPOSITORY_PATH}/images/capi" || exit 1
-
-  git checkout "${IMAGE_BUILDER_GIT_VERSION}"
 
   cat <<EOF > packer.json
 {
@@ -153,9 +142,7 @@ EOF
   export DEBUG=true
   export PACKER_LOG=1
 
-  make build-azure-sig-flatcar-gen2 FLATCAR_VERSION="${FLATCAR_VERSION}"
-
-  popd || exit 1
+  make -C ../.. build-azure-sig-ubuntu-2204
 }
 
 function publish-flatcar-image() {
@@ -350,8 +337,8 @@ usage: $0 <action>
 Available actions:
   - ensure-flatcar-staging-sig-image-version-from-vhd - Creates Flatcar image in staging SIG from VHD image.
   - publish-flatcar-image - Publishes Flatcar image to community SIG from staging SIG.
-  - build-capi-staging-image - Builds Flatcar CAPI image using image-builder to staging SIG.
-  - publish-flatcar-capi-image - Publishes Flatcar CAPI image to community SIG from staging SIG.
+  - build-staging-image - Builds CAPZ image using image-builder to staging SIG.
+  - publish-capz-image - Publishes Flatcar CAPI image to community SIG from staging SIG.
 EOF
 
   exit 0
