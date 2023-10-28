@@ -1,0 +1,510 @@
+DEBUG: file after text/template render
+gossfile:
+  goss-command.yaml: {}
+  goss-kernel-params.yaml: {}
+  goss-service.yaml: {}
+  goss-package.yaml: {}
+  goss-files.yaml: {}
+
+DEBUG: file after text/template render
+command:
+ # Linux Only
+  containerd --version | awk -F' ' '{print substr($3,2); }':
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  crictl ps:
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+
+  containerd-shim-lunatic-v1:
+    exit-status: 1
+    stdout: [ ]
+    stderr: ["io.containerd.lunatic.v1: InvalidArgument(\"Shim namespace cannot be empty\")"]
+    timeout: 0
+  containerd-shim-slight-v1:
+    exit-status: 1
+    stdout: [ ]
+    stderr: ["io.containerd.slight.v1: InvalidArgument(\"Shim namespace cannot be empty\")"]
+    timeout: 0
+  containerd-shim-spin-v1:
+    exit-status: 1
+    stdout: [ ]
+    stderr: ["io.containerd.spin.v1: InvalidArgument(\"Shim namespace cannot be empty\")"]
+    timeout: 0
+  containerd-shim-wws-v1:
+    exit-status: 1
+    stdout: [ ]
+    stderr: ["io.containerd.wws.v1: InvalidArgument(\"Shim namespace cannot be empty\")"]
+    timeout: 0
+  grep -E 'io\.containerd\.(lunatic|slight|spin|wws)\.v1' /etc/containerd/config.toml:
+    exit-status: 0
+    stdout: [ ]
+    stderr: [ ]
+    timeout: 0
+
+
+
+  crictl images | grep -v 'IMAGE ID' | awk -F'[ /]' '{print $2}' | sed 's/-amd64//g' | sort:
+    exit-status: 0
+    stderr: []
+    timeout: 0
+    stdout: ["coredns", "etcd", "kube-apiserver", "kube-controller-manager", "kube-proxy", "kube-scheduler", "pause"]
+
+
+
+
+
+
+
+
+  grep -z -q -E '^datasource:\n\s\sAzure:\n\s\s\s\sgiapply_network_config:\sfalse$' /etc/cloud/cloud.cfg.d/15_azure-vnet.cfg || echo $?:
+  
+    exit-status: 0
+  
+    stderr: []
+  
+    stdout: []
+  
+    timeout: 0
+  
+    title: Check exact for the contents in /etc/cloud/cloud.cfg.d/15_azure-vnet.cfg
+  
+
+  iptables -C FORWARD -d 168.63.129.16/32 -p tcp -m tcp --dport 80 -m comment --comment "block traffic to 168.63.129.16 for cve-2021-27075" -j DROP:
+  
+    exit-status: 0
+  
+    timeout: 0
+  
+
+  pip3 list --format=columns | grep 'azure-cli' | awk -F' ' '{print $1}':
+  
+    exit-status: 0
+  
+    stderr: []
+  
+    stdout: [azure-cli]
+  
+    timeout: 0
+  
+
+ #End linux only
+
+ #end windows
+
+DEBUG: file after text/template render
+file:
+
+
+DEBUG: file after text/template render
+
+kernel-param:
+  net.bridge.bridge-nf-call-iptables:
+    value: "1"
+  net.ipv6.conf.all.forwarding:
+    value: "1"
+  net.ipv6.conf.all.disable_ipv6:
+    value: "0"
+  net.ipv4.ip_forward:
+    value: "1"
+  net.bridge.bridge-nf-call-ip6tables:
+    value: "1"
+  vm.overcommit_memory:
+    value: "1"
+  kernel.panic:
+    value: "10"
+  kernel.panic_on_oops:
+    value: "1"
+
+  net.ipv4.conf.all.rp_filter:
+  
+    value: "1"
+  
+
+
+
+DEBUG: file after text/template render
+
+kubernetes_version: &kubernetes_version
+  versions:
+    or:
+     - contain-element:
+         match-regexp: "^\\Q1.26.7-1.1\\E$"
+     - contain-element:
+         match-regexp: "^\\Q1.26.7\\E$"
+
+kubernetes_cni_version: &kubernetes_cni_version
+  versions:
+    or:
+      - contain-element:
+          match-regexp: "^\\Q1.2.0-2.1\\E$"
+      - contain-element:
+          match-regexp: "^\\Q1.2.0\\E$"
+
+package:
+# Flatcar uses Ignition instead of cloud-init
+
+  cloud-init:
+    installed: true
+
+  ntp:
+    installed: false
+
+  kubeadm:
+    installed: true
+    <<: *kubernetes_version
+  kubelet:
+    installed: true
+    <<: *kubernetes_version
+  kubectl:
+    installed: true
+    <<: *kubernetes_version
+
+
+  kubernetes-cni:
+    installed: true
+    <<: *kubernetes_cni_version
+
+# Looping over common packages for an OS
+
+  apt-transport-https:
+    installed: true
+  
+
+  auditd:
+    installed: true
+  
+
+  chrony:
+    installed: true
+  
+
+  conntrack:
+    installed: true
+  
+
+  curl:
+    installed: true
+  
+
+  ebtables:
+    installed: true
+  
+
+  gnupg:
+    installed: true
+  
+
+  jq:
+    installed: true
+  
+
+  libnetfilter-acct1:
+    installed: true
+  
+
+  libnetfilter-cttimeout1:
+    installed: true
+  
+
+  libnetfilter-log1:
+    installed: true
+  
+
+  python3-distutils:
+    installed: true
+  
+
+  python3-netifaces:
+    installed: true
+  
+
+  python3-pip:
+    installed: true
+  
+
+  socat:
+    installed: true
+  
+
+# Looping over provider specific packages for an OS
+
+  chrony:
+    installed: true
+  
+
+  linux-cloud-tools-virtual:
+    installed: true
+  
+
+  linux-tools-virtual:
+    installed: true
+  
+
+  ntp:
+    installed: true
+  
+    installed: false
+  
+    skip: true
+  
+
+  open-vm-tools:
+    installed: true
+  
+
+
+# Iterate thru different OS Versions like RHEL7/8, Photon 3/4(future) etc.
+
+
+
+
+
+
+DEBUG: file after text/template render
+service:
+ # Linux
+  containerd:
+    enabled: true
+    running: true
+  dockerd:
+    enabled: false
+    running: false
+  kubelet:
+    enabled: true
+    running: false
+  conntrackd:
+    enabled: false
+    running: false
+  auditd:
+    enabled: true
+    running: true
+  
+  # Flatcar uses systemd-timesyncd instead of chronyd.
+  chronyd:
+    enabled: true
+    running: true
+  
+
+  apt-daily-upgrade.timer:
+  
+    enabled: false
+  
+    running: false
+  
+
+  apt-daily.timer:
+  
+    enabled: false
+  
+    running: false
+  
+
+
+  chrony:
+  
+    enabled: true
+  
+    running: true
+  
+
+
+
+
+
+package:
+  apt-transport-https:
+    installed: true
+  auditd:
+    installed: true
+  chrony:
+    installed: true
+  cloud-init:
+    installed: true
+  conntrack:
+    installed: true
+  curl:
+    installed: true
+  ebtables:
+    installed: true
+  gnupg:
+    installed: true
+  jq:
+    installed: true
+  kubeadm:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.26.7-1.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.26.7\E$
+  kubectl:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.26.7-1.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.26.7\E$
+  kubelet:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.26.7-1.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.26.7\E$
+  kubernetes-cni:
+    installed: true
+    versions:
+      or:
+      - contain-element:
+          match-regexp: ^\Q1.2.0-2.1\E$
+      - contain-element:
+          match-regexp: ^\Q1.2.0\E$
+  libnetfilter-acct1:
+    installed: true
+  libnetfilter-cttimeout1:
+    installed: true
+  libnetfilter-log1:
+    installed: true
+  linux-cloud-tools-virtual:
+    installed: true
+  linux-tools-virtual:
+    installed: true
+  ntp:
+    installed: false
+    skip: true
+  open-vm-tools:
+    installed: true
+  python3-distutils:
+    installed: true
+  python3-netifaces:
+    installed: true
+  python3-pip:
+    installed: true
+  socat:
+    installed: true
+service:
+  apt-daily-upgrade.timer:
+    enabled: false
+    running: false
+  apt-daily.timer:
+    enabled: false
+    running: false
+  auditd:
+    enabled: true
+    running: true
+  chrony:
+    enabled: true
+    running: true
+  chronyd:
+    enabled: true
+    running: true
+  conntrackd:
+    enabled: false
+    running: false
+  containerd:
+    enabled: true
+    running: true
+  dockerd:
+    enabled: false
+    running: false
+  kubelet:
+    enabled: true
+    running: false
+command:
+  containerd --version | awk -F' ' '{print substr($3,2); }':
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  containerd-shim-lunatic-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.lunatic.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  containerd-shim-slight-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.slight.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  containerd-shim-spin-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.spin.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  containerd-shim-wws-v1:
+    exit-status: 1
+    stdout: []
+    stderr:
+    - 'io.containerd.wws.v1: InvalidArgument("Shim namespace cannot be empty")'
+    timeout: 0
+  crictl images | grep -v 'IMAGE ID' | awk -F'[ /]' '{print $2}' | sed 's/-amd64//g' | sort:
+    exit-status: 0
+    stdout:
+    - coredns
+    - etcd
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-proxy
+    - kube-scheduler
+    - pause
+    stderr: []
+    timeout: 0
+  crictl ps:
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  grep -E 'io\.containerd\.(lunatic|slight|spin|wws)\.v1' /etc/containerd/config.toml:
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  ? grep -z -q -E '^datasource:\n\s\sAzure:\n\s\s\s\sgiapply_network_config:\sfalse$'
+    /etc/cloud/cloud.cfg.d/15_azure-vnet.cfg || echo $?
+  : title: Check exact for the contents in /etc/cloud/cloud.cfg.d/15_azure-vnet.cfg
+    exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  ? iptables -C FORWARD -d 168.63.129.16/32 -p tcp -m tcp --dport 80 -m comment --comment
+    "block traffic to 168.63.129.16 for cve-2021-27075" -j DROP
+  : exit-status: 0
+    stdout: []
+    stderr: []
+    timeout: 0
+  pip3 list --format=columns | grep 'azure-cli' | awk -F' ' '{print $1}':
+    exit-status: 0
+    stdout:
+    - azure-cli
+    stderr: []
+    timeout: 0
+kernel-param:
+  kernel.panic:
+    value: "10"
+  kernel.panic_on_oops:
+    value: "1"
+  net.bridge.bridge-nf-call-ip6tables:
+    value: "1"
+  net.bridge.bridge-nf-call-iptables:
+    value: "1"
+  net.ipv4.conf.all.rp_filter:
+    value: "1"
+  net.ipv4.ip_forward:
+    value: "1"
+  net.ipv6.conf.all.disable_ipv6:
+    value: "0"
+  net.ipv6.conf.all.forwarding:
+    value: "1"
+  vm.overcommit_memory:
+    value: "1"
