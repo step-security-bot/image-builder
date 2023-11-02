@@ -10,8 +10,7 @@
 # - OS_VERSION - target of build e.g. `22.04/2019/2022-containerd`
 
 jobs:
-- job: build_vhd
-  container: $[ variables['CONTAINER_IMAGE'] ]
+- job: build_sig
   timeoutInMinutes: 120
   strategy:
     maxParallel: 0
@@ -44,20 +43,20 @@ jobs:
       export JOB_NAME="${JOB_NAME:-"image-builder-vhd"}"
       export TAGS="creationTimestamp=${TIMESTAMP} jobName=${JOB_NAME}"
       printf "${TAGS}" | tee packer/azure/tags.out
-      make build-azure-vhd-$os-$version | tee packer/azure/packer.out
-    displayName: Building VHD
+      make build-azure-sig-$os-$version | tee packer/azure/packer.out
+    displayName: Building SIG Image
     workingDirectory: '$(system.defaultWorkingDirectory)/images/capi'
     env:
       AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
-  - template: generate-sas.yaml
-  - template: vhd-publishing-info.yaml
-  - task: PublishPipelineArtifact@1
-    inputs:
-      artifact: 'publishing-info'
-      path: '$(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd-publishing-info.json'
-    condition: eq(variables.CLEANUP, 'False')
-  - template: delete-storage-account.yaml
-  - script: |
-      chown -R $USER:$USER .
-    displayName: cleanup - chown all files in work directory
-    condition: always()
+  # - template: generate-sas.yaml
+  # - template: vhd-publishing-info.yaml
+  # - task: PublishPipelineArtifact@1
+  #   inputs:
+  #     artifact: 'publishing-info'
+  #     path: '$(system.defaultWorkingDirectory)/images/capi/packer/azure/vhd-publishing-info.json'
+  #   condition: eq(variables.CLEANUP, 'False')
+  # - template: delete-storage-account.yaml
+  # - script: |
+  #     chown -R $USER:$USER .
+  #   displayName: cleanup - chown all files in work directory
+  #   condition: always()
