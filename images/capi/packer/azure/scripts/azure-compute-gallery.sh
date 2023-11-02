@@ -134,6 +134,10 @@ function build-staging-image() {
   # Export variables expected by init-sig.sh.
   export RESOURCE_GROUP_NAME="${STAGING_SIG_RESOURCE_GROUP}"
   export GALLERY_NAME="${STAGING_GALLERY_NAME}"
+  export SIG_OFFER="${IMAGE_OFFER}"
+  export SIG_SKU="${IMAGE_NAME}"
+  export SIG_PUBLISHER="${IMAGE_PUBLISHER}"
+
   export AZURE_SUBSCRIPTION_ID
   export AZURE_LOCATION
   export AZURE_CLIENT_ID
