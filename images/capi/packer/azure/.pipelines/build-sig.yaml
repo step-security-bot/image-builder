@@ -32,6 +32,8 @@ jobs:
     condition: and(eq(variables['PREFLIGHT_CHECKS'], 'true'), eq(variables['OS'], 'Windows'))
   - script: |
       set -o pipefail
+
+      export PATH=$PATH:$HOME/.local/bin
       make deps-azure
       os=$(echo "${OS}" | tr '[:upper:]' '[:lower:]')
       version=$(echo "${OS_VERSION}" | tr '[:upper:]' '[:lower:]' | tr -d .)
