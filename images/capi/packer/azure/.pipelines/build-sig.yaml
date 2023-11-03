@@ -33,6 +33,10 @@ jobs:
   - script: |
       set -o pipefail
 
+      # Generate locales properly so ansible doesn't complain
+      tndf -y install glibc-i18n
+      locale-gen.sh
+
       export PATH=$PATH:$HOME/.local/bin
       make deps-azure
       os=$(echo "${OS}" | tr '[:upper:]' '[:lower:]')
