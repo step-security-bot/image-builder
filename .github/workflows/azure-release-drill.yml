@@ -1,0 +1,63 @@
+name: Kubernetes Release Drill for Azure
+run-name: Kubernetes ${{ join(fromJSON(inputs.kubernetesVersion), ', ') }} VHD builds for Azure
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      kubernetesVersion:
+        description: 'Kubernetes versions'
+        required: true
+        default: '["1.29.2", "1.28.7", "1.27.11", "1.26.4"]'
+        type: string
+      os:
+        description: 'Operating systems'
+        required: true
+        default: '["Ubuntu", "Windows"]'
+        type: string
+      osVersion:
+        description: 'OS versions'
+        required: true
+        default: '["22.04", "20.04", "2022-containerd", "2019-containerd"]'
+        type: string
+
+jobs:
+  release:
+    uses: ./.github/workflows/azure-vhd.yml
+    with:
+      kubernetesVersion: ${{ matrix.kubernetesVersion }}
+      os: ${{ matrix.os }}
+      osVersion: ${{ matrix.osVersion }}
+      vmGeneration: gen1
+      offer: ${{ matrix.os == 'Windows' && 'capi-windows' || 'capi' }}
+    secrets: inherit
+    strategy:
+      matrix:
+        kubernetesVersion: ${{ fromJSON(inputs.kubernetesVersion) }}
+        os: ${{ fromJSON(inputs.os) }}
+        osVersion: ${{ fromJSON(inputs.osVersion) }}
+        exclude:
+          - os: Windows
+            osVersion: 24.04
+          - os: Windows
+            osVersion: 22.04
+          - os: Windows
+            osVersion: 20.04
+          - os: Ubuntu
+            osVersion: 2022-containerd
+          - os: Ubuntu
+            osVersion: 2019-containerd
+          - os: Flatcar
+            osVersion: 2022-containerd
+          - os: Flatcar
+            osVersion: 2019-containerd
+          - os: Mariner
+            osVersion: 2022-containerd
+          - os: Mariner
+            osVersion: 2019-containerd
+          - os: Rhel
+            osVersion: 2022-containerd
+          - os: Rhel
+            osVersion: 2019-containerd

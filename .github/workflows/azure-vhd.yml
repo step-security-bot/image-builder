@@ -1,0 +1,369 @@
+name: Kubernetes VHD build for Azure
+run-name: Kubernetes v${{ inputs.kubernetesVersion }} ${{ inputs.os }} ${{ inputs.osVersion }} VHD build for Azure
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: images/capi
+
+on:
+  workflow_call:
+    inputs:
+      kubernetesVersion:
+        description: 'Kubernetes version'
+        required: true
+        type: string
+      os:
+        description: 'OS'
+        required: true
+        type: string
+      osVersion:
+        description: 'OS version'
+        required: true
+        type: string
+      vmGeneration:
+        description: 'VM generation'
+        required: true
+        type: string
+      offer:
+        description: 'Marketplace offer'
+        required: true
+        type: string
+      kubernetesControlPlaneVersion:
+        description: 'Kubernetes control plane version (for Windows builds)'
+        required: false
+        type: string
+      debug:
+        description: 'Debug output'
+        required: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      kubernetesVersion:
+        description: 'Kubernetes version'
+        required: true
+        default: '1.29.2'
+        type: string
+      os:
+        description: 'OS'
+        required: true
+        default: 'Ubuntu'
+        type: choice
+        options:
+          - Flatcar
+          - Mariner
+          - Rhel
+          - Ubuntu
+          - Windows
+      osVersion:
+        description: 'OS version'
+        required: true
+        default: '22.04 | 2022-containerd'
+        type: string
+      vmGeneration:
+        description: 'VM generation'
+        required: true
+        default: 'gen1'
+        type: choice
+        options:
+          - gen1
+          - gen2
+      offer:
+        description: 'Marketplace offer'
+        required: true
+        default: 'capi'
+        type: choice
+        options:
+          - capi
+          - capi-windows
+      kubernetesControlPlaneVersion:
+        description: 'Kubernetes control plane version (for Windows builds)'
+        required: false
+        type: string
+      debug:
+        description: 'Debug output'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      SAS_URL: ${{ steps.generate-sas.outputs.SAS_URL }}
+      STORAGE_ACCOUNT_NAME: ${{ steps.build.outputs.STORAGE_ACCOUNT_NAME }}
+      TAGS: ${{ steps.build.outputs.TAGS }}
+      VHD_RESOURCE_ID: ${{ steps.build.outputs.OS_DISK_URI }}
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      - name: Check out image-builder code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Verify that Windows kube-proxy image is available
+        if: inputs.os == 'Windows'
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          kube_proxy_url="sigwindowstools/kube-proxy:v${KUBERNETES_VERSION}-calico-hostprocess"
+          echo "Checking for Windows kube-proxy image $kube_proxy_url"
+          if ! stderr="$(docker pull $kube_proxy_url 2>&1 > /dev/null)"; then
+            # It's a Windows image, so expect an error after pulling it on Linux
+            if [[ $stderr != *"cannot be used on this platform"* ]]; then
+              echo "Failed to pull kube-proxy image: $stderr"
+              exit 1
+            fi
+          fi
+        env:
+          DEBUG: ${{ inputs.debug }}
+          KUBERNETES_VERSION: ${{ inputs.kubernetesVersion }}
+
+      - name: Write Packer build configuration
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          CONFIG_FILE=./packer/config/kubernetes.json
+          KUBERNETES_RELEASE=$(echo ${KUBERNETES_VERSION} | cut -d "." -f -2)
+          sed -i "s/^  \"kubernetes_series\".*/  \"kubernetes_series\": \"v${KUBERNETES_RELEASE}\",/g" ${CONFIG_FILE}
+          sed -i "s/^  \"kubernetes_semver\".*/  \"kubernetes_semver\": \"v${KUBERNETES_VERSION}\",/g" ${CONFIG_FILE}
+          sed -i "s/^  \"kubernetes_rpm_version\".*/  \"kubernetes_rpm_version\": \"${KUBERNETES_VERSION}\",/g" ${CONFIG_FILE}
+          sed -i "s/^  \"kubernetes_deb_version\".*/  \"kubernetes_deb_version\": \"${KUBERNETES_VERSION}-1.1\",/g" ${CONFIG_FILE}
+          cat ${CONFIG_FILE}
+        env:
+          DEBUG: ${{ inputs.debug }}
+          KUBERNETES_VERSION: ${{ inputs.kubernetesVersion }}
+
+      - name: Log in to Azure
+        uses: azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d # v1.6.1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_VHD }}
+
+      - name: Build image as VHD in Azure
+        id: build
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          make deps-azure
+          if [[ "${OS}" == "Windows" ]]; then
+            # Install pywinrm for GitHub Actions environment
+            pipx inject ansible-core pywinrm
+          fi
+          # timestamp is in RFC-3339 format to match kubetest
+          export TIMESTAMP="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          export JOB_NAME="${GITHUB_JOB}-${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}"
+          export TAGS="creationTimestamp=${TIMESTAMP} jobName=${JOB_NAME}"
+          # Strip the dots from the osVersion for the Makefile target, e.g. 22.04 -> 2204
+          VERSION=$(echo ${OS_VERSION} | tr -d .)
+          OS=$(echo ${OS} | tr '[:upper:]' '[:lower:]')
+          make build-azure-vhd-${OS}-${VERSION} | tee packer.out
+          echo RESOURCE_GROUP_NAME=$(jq -r '.builds[-1].custom_data.resource_group_name' manifest.json | cut -d ":" -f2) >> "$GITHUB_ENV"
+          STORAGE_ACCOUNT_NAME=$(jq -r '.builds[-1].custom_data.storage_account_name' manifest.json | cut -d ":" -f2)
+          echo "STORAGE_ACCOUNT_NAME=${STORAGE_ACCOUNT_NAME}" >> "$GITHUB_ENV"
+          echo "STORAGE_ACCOUNT_NAME=${STORAGE_ACCOUNT_NAME}" >> "$GITHUB_OUTPUT"
+          echo OS_DISK_URI=$(cat packer.out | grep "OSDiskUri:" -m 1 | cut -d " " -f 2) >> "$GITHUB_OUTPUT"
+          echo "TAGS=${TAGS}" >> "$GITHUB_OUTPUT"
+        env:
+          DEBUG: ${{ inputs.debug }}
+          AZURE_CLIENT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).clientId }}
+          AZURE_CLIENT_SECRET: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).clientSecret }}
+          AZURE_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).subscriptionId }}
+          AZURE_TENANT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).tenantId }}
+          OS: ${{ inputs.os }}
+          OS_VERSION: ${{ inputs.osVersion }}
+
+      - name: Generate SAS URL for VHD
+        id: generate-sas
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          az account set -s ${AZURE_SUBSCRIPTION_ID}
+          ACCOUNT_KEY=$(az storage account keys list -g ${RESOURCE_GROUP_NAME} \
+            --subscription ${AZURE_SUBSCRIPTION_ID} --account-name ${STORAGE_ACCOUNT_NAME} --query '[0].value')
+          start_date=$(date +"%Y-%m-%dT00:00Z" -d "-1 day")
+          expiry_date=$(date +"%Y-%m-%dT00:00Z" -d "+1 year")
+          SAS_URL=$(az storage container generate-sas --name system --permissions lr \
+            --account-name ${STORAGE_ACCOUNT_NAME} --account-key ${ACCOUNT_KEY} --start $start_date --expiry $expiry_date | tr -d '\"')
+          echo SAS_URL=${SAS_URL} >> "$GITHUB_OUTPUT"
+        env:
+          DEBUG: ${{ inputs.debug }}
+          AZURE_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).subscriptionId }}
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      - name: Check out image-builder code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Log in to Azure
+        uses: azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d # v1.6.1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_VHD }}
+
+      - name: Create managed image from VHD
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          RESOURCE_GROUP="capi-testvmimage-$(bash -c 'echo $RANDOM')"
+          # Find the VHD blob location from its storage account
+          AZURE_LOCATION=$(az storage account show --name "${STORAGE_ACCOUNT_NAME}" --query '[location]' -o tsv)
+          # Create the resource group
+          # Note: the tags parameter is not surrounded by quotes for the Azure CLI to parse it correctly.
+          az group create --name "${RESOURCE_GROUP}" --location "${AZURE_LOCATION}" --tags ${TAGS}
+          # Create a managed image from the VHD blob
+          OS_TYPE="Linux"
+          if [ "$OS" == "windows" ]; then
+            OS_TYPE="Windows"
+          fi
+          az image create -n testvmimage -g "${RESOURCE_GROUP}" --os-type "${OS_TYPE}" --source "${VHD_RESOURCE_ID}"
+          # Pass the managed image resource ID on to the next step
+          echo "AZURE_LOCATION=${AZURE_LOCATION}" >> "$GITHUB_ENV"
+          echo MANAGED_IMAGE_ID=$(az image show -g "${RESOURCE_GROUP}" -n testvmimage --query '[id]' --output tsv) >> "$GITHUB_ENV"
+          echo "OS_TYPE=${OS_TYPE}" >> "$GITHUB_ENV"
+          echo "RESOURCE_GROUP=${RESOURCE_GROUP}" >> "$GITHUB_ENV"
+        env:
+          DEBUG: ${{ inputs.debug }}
+          OS: ${{ inputs.os }}
+          STORAGE_ACCOUNT_NAME: ${{ needs.build.outputs.STORAGE_ACCOUNT_NAME }}
+          TAGS: ${{ needs.build.outputs.TAGS }}
+          VHD_RESOURCE_ID: ${{ needs.build.outputs.VHD_RESOURCE_ID }}
+
+      - name: Generate cluster template
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          export PATH=${PATH}:.local/bin
+          ./packer/azure/scripts/ensure-kustomize.sh
+          # Generate cluster template with kustomize
+          TEMPLATES_DIR=./packer/azure/scripts/test-templates
+          kustomize build --load-restrictor LoadRestrictionsNone \
+            ${TEMPLATES_DIR}/$(echo "${OS_TYPE}" | tr '[:upper:]' '[:lower:]')/ > ${TEMPLATES_DIR}/cluster-template.yaml
+          echo TEST_TEMPLATE=./packer/azure/scripts/test-templates/cluster-template.yaml >> "$GITHUB_ENV"
+        env:
+          DEBUG: ${{ inputs.debug }}
+
+      - name: Configure az capi CLI extension
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          az extension add --allow-preview --yes --source "${AZ_CAPI_URL}"
+          mkdir ./test-binaries
+          export PATH=${PATH}:./test-binaries
+          az capi install -a -p ./test-binaries
+        env:
+          DEBUG: ${{ inputs.debug }}
+          AZ_CAPI_URL: https://github.com/Azure/azure-capi-cli-extension/releases/download/az-capi-nightly/capi-0.0.vnext-py2.py3-none-any.whl  # nightly build
+
+      - name: Create and validate test cluster
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x
+          params=()
+          if [[ "${DEBUG}" = true ]]; then
+            params+=(--debug)
+          else
+            unset DEBUG
+          fi
+          if [ "$OS" == "Windows" ]; then
+            params+=(--windows)
+            # Find the previous Kubernetes release if not specified, for the
+            # Linux control plane on Windows clusters.
+            if [[ -z "${KUBERNETES_BOOTSTRAP_VERSION}" ]]; then
+              pip install semver
+              KUBERNETES_BOOTSTRAP_VERSION=$(./hack/previous-k8s.py "${KUBERNETES_VERSION}")
+            fi
+            echo "KUBERNETES_BOOTSTRAP_VERSION=${KUBERNETES_BOOTSTRAP_VERSION}"
+          fi
+          export PATH=./test-binaries:${PATH}
+          # Create a cluster and wait for two nodes to be ready
+          az capi create \
+            --yes \
+            --name testvm \
+            --kubernetes-version="${KUBERNETES_VERSION}" \
+            --location="${AZURE_LOCATION}" \
+            --resource-group="${RESOURCE_GROUP}" \
+            --management-cluster-resource-group-name="${RESOURCE_GROUP}" \
+            --control-plane-machine-count=1 \
+            --node-machine-count=1 \
+            --template="${TEST_TEMPLATE}" \
+            --tags="${TAGS}" \
+            --wait-for-nodes=2 \
+            "${params[@]}"
+          # Test that the provisioningState for VMs is "Succeeded", which may lag behind the nodes being ready.
+          timeout 60s bash -c "while ! az vm list -g ${RESOURCE_GROUP} | jq -e 'all(.provisioningState == \"Succeeded\")'; do sleep 1; done"
+        env:
+          DEBUG: ${{ inputs.debug }}
+          AZURE_CLIENT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).clientId }}
+          AZURE_CLIENT_SECRET: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).clientSecret }}
+          AZURE_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).subscriptionId }}
+          AZURE_TENANT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).tenantId }}
+          KUBERNETES_BOOTSTRAP_VERSION: ${{ inputs.kubernetesControlPlaneVersion }}
+          KUBERNETES_VERSION: ${{ inputs.kubernetesVersion }}
+          OS: ${{ inputs.os }}
+          TAGS: ${{ needs.build.outputs.TAGS }}
+
+      - name: Clean up testing resources
+        if: always()
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          az group delete -n "${RESOURCE_GROUP}" --yes --no-wait
+        env:
+          DEBUG: ${{ inputs.debug }}
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      - name: Check out image-builder code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Create SKU in Marketplace offer
+        run: |
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          ./packer/azure/scripts/new-sku.sh
+        env:
+          DEBUG: ${{ inputs.debug }}
+          AZURE_CLIENT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_SKU).clientId }}
+          AZURE_CLIENT_SECRET: ${{ fromJSON(secrets.AZURE_CREDENTIALS_SKU).clientSecret }}
+          AZURE_TENANT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_SKU).tenantId }}
+          KUBERNETES_VERSION: ${{ inputs.kubernetesVersion }}
+          OFFER: ${{ inputs.offer }}
+          OS: ${{ inputs.os }}
+          OS_VERSION: ${{ inputs.osVersion }}
+          PUB_VERSION: v0.3.3
+          PUBLISHER: cncf-upstream
+          SKU_TEMPLATE_FILE: ./packer/azure/sku-template.json
+          VM_GENERATION: ${{ inputs.vmGeneration }}
+
+      - name: Create Version in Marketplace offer
+        run: |
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          ./packer/azure/scripts/new-disk-version.sh
+        env:
+          DEBUG: ${{ inputs.debug }}
+          AZURE_CLIENT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_SKU).clientId }}
+          AZURE_CLIENT_SECRET: ${{ fromJSON(secrets.AZURE_CREDENTIALS_SKU).clientSecret }}
+          AZURE_TENANT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_SKU).tenantId }}
+          OS: ${{ inputs.os }}
+          OS_VERSION: ${{ inputs.osVersion }}
+          PUB_VERSION: v0.3.3
+
