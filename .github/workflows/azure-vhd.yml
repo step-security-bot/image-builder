@@ -166,7 +166,7 @@ jobs:
           STORAGE_ACCOUNT_NAME=$(jq -r '.builds[-1].custom_data.storage_account_name' manifest.json | cut -d ":" -f2)
           echo "STORAGE_ACCOUNT_NAME=${STORAGE_ACCOUNT_NAME}" >> "$GITHUB_ENV"
           echo "STORAGE_ACCOUNT_NAME=${STORAGE_ACCOUNT_NAME}" >> "$GITHUB_OUTPUT"
-          echo OS_DISK_URI=$(cat packer.out | grep "OSDiskUri:" -m 1 | cut -d " " -f 2) >> "$GITHUB_OUTPUT"
+          echo OS_DISK_BASE_URI=$(cat packer.out | grep "OSDiskUri:" -m 1 | cut -d " " -f 2) >> "$GITHUB_OUTPUT"
           echo "TAGS=${TAGS}" >> "$GITHUB_OUTPUT"
         env:
           DEBUG: ${{ inputs.debug }}
@@ -189,10 +189,25 @@ jobs:
           expiry_date=$(date +"%Y-%m-%dT00:00Z" -d "+1 year")
           SAS_URL=$(az storage container generate-sas --name system --permissions lr \
             --account-name ${STORAGE_ACCOUNT_NAME} --account-key ${ACCOUNT_KEY} --start $start_date --expiry $expiry_date | tr -d '\"')
-          echo SAS_URL=${SAS_URL} >> "$GITHUB_OUTPUT"
+          echo SAS_URL=${OS_DISK_BASE_URI}?${SAS_URL} >> "$GITHUB_OUTPUT"
         env:
           DEBUG: ${{ inputs.debug }}
           AZURE_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).subscriptionId }}
+
+      - name: Generate VHD publishing info
+        id: generate-vhd-publishing-info
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          cat <<EOF > packer/azure/vhd-publishing-info.json
+          {
+              "vhd_base_url": "${OS_DISK_BASE_URI}",
+              "vhd_url": "${SAS_URL}?",
+              "storage_account_name": "${STORAGE_ACCOUNT_NAME}",
+              "resource_group_name": "${RESOURCE_GROUP_NAME}",
+              "tags": "${TAGS}"
+          }
+          EOF
 
   test:
     runs-on: ubuntu-latest
