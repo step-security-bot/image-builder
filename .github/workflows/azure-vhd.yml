@@ -176,6 +176,7 @@ jobs:
           AZURE_TENANT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).tenantId }}
           OS: ${{ inputs.os }}
           OS_VERSION: ${{ inputs.osVersion }}
+          PACKER_GITHUB_API_TOKEN: ${{ secrets.PACKER_GITHUB_API_TOKEN }}
 
       - name: Generate SAS URL for VHD
         id: generate-sas
