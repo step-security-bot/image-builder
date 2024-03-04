@@ -140,7 +140,7 @@ jobs:
           KUBERNETES_VERSION: ${{ inputs.kubernetesVersion }}
 
       - name: Log in to Azure
-        uses: azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d # v1.6.1
+        uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS_VHD }}
 
@@ -209,6 +209,12 @@ jobs:
           }
           EOF
 
+      - name: Archive VHD publishing info
+        uses: actions/upload-artifact@v4
+        with:
+          name: vhd-publishing-info
+          path: packer/azure/vhd-publishing-info.json
+
   test:
     runs-on: ubuntu-latest
     needs: build
@@ -223,7 +229,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Log in to Azure
-        uses: azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d # v1.6.1
+        uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS_VHD }}
 
@@ -368,6 +374,12 @@ jobs:
           PUBLISHER: cncf-upstream
           SKU_TEMPLATE_FILE: ./packer/azure/sku-template.json
           VM_GENERATION: ${{ inputs.vmGeneration }}
+
+      - name: Download VHD publishing info
+        uses: actions/download-artifact@v4
+        with:
+          name: vhd-publishing-info
+          path: vhd/vhd-publishing-info.json
 
       - name: Create Version in Marketplace offer
         run: |
