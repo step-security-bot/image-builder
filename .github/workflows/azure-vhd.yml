@@ -217,11 +217,20 @@ jobs:
         env:
           DEBUG: ${{ inputs.debug }}
 
+      - name: Test VHD publishing info
+        run: |
+          set -euo pipefail
+          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
+          cat packer/azure/vhd-publishing-info.json
+        env:
+          DEBUG: ${{ inputs.debug }}
+
       - name: Archive VHD publishing info
         uses: actions/upload-artifact@v4
         with:
           name: vhd-publishing-info
-          path: packer/azure/vhd-publishing-info.json
+          path: images/capi/packer/azure/vhd-publishing-info.json
+          if-no-files-found: error
 
   test:
     runs-on: ubuntu-latest
