@@ -190,6 +190,7 @@ jobs:
           expiry_date=$(date +"%Y-%m-%dT00:00Z" -d "+1 year")
           SAS_URL=$(az storage container generate-sas --name system --permissions lr \
             --account-name ${STORAGE_ACCOUNT_NAME} --account-key ${ACCOUNT_KEY} --start $start_date --expiry $expiry_date | tr -d '\"')
+          echo OS_DISK_BASE_URI=${OS_DISK_BASE_URI} >> "$GITHUB_OUTPUT"
           echo SAS_URL=${OS_DISK_BASE_URI}?${SAS_URL} >> "$GITHUB_OUTPUT"
         env:
           DEBUG: ${{ inputs.debug }}
