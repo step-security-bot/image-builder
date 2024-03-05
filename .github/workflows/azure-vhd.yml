@@ -139,7 +139,7 @@ jobs:
           KUBERNETES_VERSION: ${{ inputs.kubernetesVersion }}
 
       - name: Log in to Azure
-        uses: azure/login@v2
+        uses: azure/login@8c334a195cbb38e46038007b304988d888bf676a # v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS_VHD }}
 
@@ -216,7 +216,7 @@ jobs:
           DEBUG: ${{ inputs.debug }}
 
       - name: Archive VHD publishing info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
           name: vhd-publishing-info
           path: images/capi/packer/azure/vhd-publishing-info.json  # task doesn't respect default directory
@@ -236,7 +236,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Log in to Azure
-        uses: azure/login@v2
+        uses: azure/login@8c334a195cbb38e46038007b304988d888bf676a # v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS_VHD }}
 
@@ -384,14 +384,14 @@ jobs:
           VM_GENERATION: ${{ inputs.vmGeneration }}
 
       - name: Archive SKU publishing info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
         with:
           name: sku-publishing-info
           path: images/capi/sku/sku-publishing-info.json  # task doesn't respect default directory
           if-no-files-found: error
 
       - name: Download VHD publishing info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
         with:
           name: vhd-publishing-info
           path: vhd/vhd-publishing-info.json
