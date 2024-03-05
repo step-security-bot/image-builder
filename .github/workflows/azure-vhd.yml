@@ -212,16 +212,6 @@ jobs:
               "tags": "${TAGS}"
           }
           EOF
-          ls -al packer/azure
-          cat packer/azure/vhd-publishing-info.json
-        env:
-          DEBUG: ${{ inputs.debug }}
-
-      - name: Test VHD publishing info
-        run: |
-          set -euo pipefail
-          [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
-          cat packer/azure/vhd-publishing-info.json
         env:
           DEBUG: ${{ inputs.debug }}
 
@@ -229,7 +219,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vhd-publishing-info
-          path: images/capi/packer/azure/vhd-publishing-info.json
+          path: images/capi/packer/azure/vhd-publishing-info.json  # task doesn't respect default directory
           if-no-files-found: error
 
   test:
@@ -378,6 +368,7 @@ jobs:
         run: |
           [[ "${DEBUG}" = true ]] && set -x || unset DEBUG
           ./packer/azure/scripts/new-sku.sh
+          mkdir sku && mv sku-publishing-info.json sku/
         env:
           DEBUG: ${{ inputs.debug }}
           AZURE_CLIENT_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_SKU).clientId }}
@@ -391,6 +382,13 @@ jobs:
           PUBLISHER: cncf-upstream
           SKU_TEMPLATE_FILE: ./packer/azure/sku-template.json
           VM_GENERATION: ${{ inputs.vmGeneration }}
+
+      - name: Archive SKU publishing info
+        uses: actions/upload-artifact@v4
+        with:
+          name: sku-publishing-info
+          path: images/capi/sku/sku-publishing-info.json  # task doesn't respect default directory
+          if-no-files-found: error
 
       - name: Download VHD publishing info
         uses: actions/download-artifact@v4
