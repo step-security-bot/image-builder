@@ -165,7 +165,9 @@ jobs:
           STORAGE_ACCOUNT_NAME=$(jq -r '.builds[-1].custom_data.storage_account_name' manifest.json | cut -d ":" -f2)
           echo "STORAGE_ACCOUNT_NAME=${STORAGE_ACCOUNT_NAME}" >> "$GITHUB_ENV"
           echo "STORAGE_ACCOUNT_NAME=${STORAGE_ACCOUNT_NAME}" >> "$GITHUB_OUTPUT"
-          echo OS_DISK_BASE_URI=$(cat packer.out | grep "OSDiskUri:" -m 1 | cut -d " " -f 2) >> "$GITHUB_OUTPUT"
+          OS_DISK_BASE_URI=$(cat packer.out | grep "OSDiskUri:" -m 1 | cut -d " " -f 2)
+          echo "OS_DISK_BASE_URI=${OS_DISK_BASE_URI}" >> "$GITHUB_ENV"
+          echo "OS_DISK_BASE_URI=${OS_DISK_BASE_URI}" >> "$GITHUB_OUTPUT"
           echo "TAGS=${TAGS}" >> "$GITHUB_OUTPUT"
         env:
           DEBUG: ${{ inputs.debug }}
