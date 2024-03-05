@@ -92,10 +92,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      SAS_URL: ${{ steps.generate-sas.outputs.SAS_URL }}
       STORAGE_ACCOUNT_NAME: ${{ steps.build.outputs.STORAGE_ACCOUNT_NAME }}
       TAGS: ${{ steps.build.outputs.TAGS }}
-      VHD_RESOURCE_ID: ${{ steps.build.outputs.OS_DISK_URI }}
+      VHD_RESOURCE_ID: ${{ steps.build.outputs.OS_DISK_BASE_URI }}
 
     steps:
       - name: Harden Runner
@@ -190,8 +189,8 @@ jobs:
           expiry_date=$(date +"%Y-%m-%dT00:00Z" -d "+1 year")
           SAS_URL=$(az storage container generate-sas --name system --permissions lr \
             --account-name ${STORAGE_ACCOUNT_NAME} --account-key ${ACCOUNT_KEY} --start $start_date --expiry $expiry_date | tr -d '\"')
-          echo OS_DISK_BASE_URI=${OS_DISK_BASE_URI} >> "$GITHUB_OUTPUT"
-          echo SAS_URL=${OS_DISK_BASE_URI}?${SAS_URL} >> "$GITHUB_OUTPUT"
+          echo OS_DISK_BASE_URI=${OS_DISK_BASE_URI} >> "$GITHUB_ENV"
+          echo SAS_URL=${OS_DISK_BASE_URI}?${SAS_URL} >> "$GITHUB_ENV"
         env:
           DEBUG: ${{ inputs.debug }}
           AZURE_SUBSCRIPTION_ID: ${{ fromJSON(secrets.AZURE_CREDENTIALS_VHD).subscriptionId }}
