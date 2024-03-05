@@ -212,6 +212,8 @@ jobs:
               "tags": "${TAGS}"
           }
           EOF
+          ls -al packer/azure
+          cat packer/azure/vhd-publishing-info.json
         env:
           DEBUG: ${{ inputs.debug }}
 
